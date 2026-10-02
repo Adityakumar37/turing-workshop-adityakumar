@@ -1,41 +1,43 @@
-const cache = new Map();          // key -> { data, createdAt }
-const TTL = 60 * 1000;            // 1 minute
+// simple in-memory cache
+const cache = new Map()
+const TTL = 60 * 1000 // 1 minute in ms
 
 function cacheMiddleware(req, res, next) {
-    const key = req.originalUrl;  // "/products" and "/products/1" get separate entries
-    const entry = cache.get(key);
+    const key = req.originalUrl
+    const cached = cache.get(key)
 
-    if (entry) {
-        const age = Date.now() - entry.createdAt;
-        if (age < TTL) {
-            res.set("X-Cache", "HIT");
-            return res.json(entry.data);
+    if (cached) {
+        const timePassed = Date.now() - cached.createdAt
+        if (timePassed < TTL) {
+            res.set("X-Cache", "HIT")
+            res.json(cached.data)
+            return
         }
-        cache.delete(key);        // expired -> don't use it
+        // cache expired so remove it
+        cache.delete(key)
     }
 
-    res.set("X-Cache", "MISS");
+    res.set("X-Cache", "MISS")
 
-    // wrap res.json so we can store the fresh value when the controller responds
-    const originalJson = res.json.bind(res);
-    res.json = (body) => {
+    // intercept res.json to save response into cache
+    const originalJson = res.json.bind(res)
+    res.json = function(body) {
         if (res.statusCode === 200) {
-            cache.set(key, { data: body, createdAt: Date.now() });
+            cache.set(key, { data: body, createdAt: Date.now() })
         }
-        return originalJson(body);
-    };
+        return originalJson(body)
+    }
 
-    next();
+    next()
 }
 
-// For POST / PUT / PATCH / DELETE
 function invalidateCacheMiddleware(req, res, next) {
-    res.on("finish", () => {
+    res.on("finish", function() {
         if (res.statusCode >= 200 && res.statusCode < 300) {
-            cache.clear();        // list AND single-item entries may be stale
+            cache.clear()
         }
-    });
-    next();
+    })
+    next()
 }
 
-module.exports = { cacheMiddleware, invalidateCacheMiddleware };
+module.exports = { cacheMiddleware, invalidateCacheMiddleware }

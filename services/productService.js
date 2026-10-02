@@ -1,48 +1,71 @@
-const { readData, writeData } = require("../database/db");
+const { readData, writeData } = require("../database/db")
 
 async function getAllProducts() {
-    return readData();
+    const products = await readData()
+    return products
 }
 
 async function getProductById(id) {
-    const data = await readData();
-    return data.find((p) => p.id === id) || null;
+    const products = await readData()
+    const found = products.find(product => product.id === id)
+    if (!found) return null
+    return found
 }
 
-async function createProduct({ name, price }) {
-    const data = await readData();
-    const newId = data.length ? Math.max(...data.map((p) => p.id)) + 1 : 1;
-    const product = { id: newId, name, price };
-    data.push(product);
-    await writeData(data);
-    return product;
+async function createProduct(name, price) {
+    const products = await readData()
+
+    // find the max id and add 1
+    let maxId = 0
+    for (let i = 0; i < products.length; i++) {
+        if (products[i].id > maxId) maxId = products[i].id
+    }
+
+    const newProduct = {
+        id: maxId + 1,
+        name: name,
+        price: price
+    }
+
+    products.push(newProduct)
+    await writeData(products)
+    return newProduct
 }
 
-// PUT = replace, PATCH = partial update (same logic works for both)
-async function updateProduct(id, fields) {
-    const data = await readData();
-    const index = data.findIndex((p) => p.id === id);
-    if (index === -1) return null;
+async function updateProduct(id, updatedFields) {
+    const products = await readData()
+    let index = -1
 
-    data[index] = { ...data[index], ...fields, id };
-    await writeData(data);
-    return data[index];
+    for (let i = 0; i < products.length; i++) {
+        if (products[i].id === id) {
+            index = i
+            break
+        }
+    }
+
+    if (index === -1) return null
+
+    products[index] = { ...products[index], ...updatedFields, id: id }
+    await writeData(products)
+    return products[index]
 }
 
 async function deleteProduct(id) {
-    const data = await readData();
-    const index = data.findIndex((p) => p.id === id);
-    if (index === -1) return false;
+    const products = await readData()
+    let index = -1
 
-    data.splice(index, 1);
-    await writeData(data);
-    return true;
+    for (let i = 0; i < products.length; i++) {
+        if (products[i].id === id) {
+            index = i
+            break
+        }
+    }
+
+    if (index === -1) return false
+
+    products.splice(index, 1)
+    await writeData(products)
+    return true
 }
 
-module.exports = {
-    getAllProducts,
-    getProductById,
-    createProduct,
-    updateProduct,
-    deleteProduct,
-};
+module.exports = { getAllProducts, getProductById, createProduct, updateProduct, deleteProduct }

@@ -1,59 +1,82 @@
-const service = require("../services/productService");
+const productService = require("../services/productService")
 
 async function getAll(req, res) {
     try {
-        res.json(await service.getAllProducts());
+        const products = await productService.getAllProducts()
+        res.json(products)
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Internal server error" });
+        console.log(err)
+        res.status(500).json({ message: "something went wrong" })
     }
 }
 
 async function getOne(req, res) {
     try {
-        const product = await service.getProductById(parseInt(req.params.id));
-        if (!product) return res.status(404).json({ message: "Product not found" });
-        res.json(product);
+        const id = parseInt(req.params.id)
+        const product = await productService.getProductById(id)
+
+        if (product === null) {
+            res.status(404).json({ message: "product not found" })
+            return
+        }
+
+        res.json(product)
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Internal server error" });
+        console.log(err)
+        res.status(500).json({ message: "something went wrong" })
     }
 }
 
 async function create(req, res) {
     try {
-        const { name, price } = req.body;
+        const name = req.body.name
+        const price = req.body.price
+
         if (!name || price === undefined) {
-            return res.status(400).json({ message: "name and price are required" });
+            res.status(400).json({ message: "name and price are required" })
+            return
         }
-        const product = await service.createProduct({ name, price });
-        res.status(201).json(product);
+
+        const newProduct = await productService.createProduct(name, price)
+        res.status(201).json(newProduct)
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Internal server error" });
+        console.log(err)
+        res.status(500).json({ message: "something went wrong" })
     }
 }
 
 async function update(req, res) {
     try {
-        const product = await service.updateProduct(parseInt(req.params.id), req.body);
-        if (!product) return res.status(404).json({ message: "Product not found" });
-        res.json(product);
+        const id = parseInt(req.params.id)
+        const updated = await productService.updateProduct(id, req.body)
+
+        if (updated === null) {
+            res.status(404).json({ message: "product not found" })
+            return
+        }
+
+        res.json(updated)
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Internal server error" });
+        console.log(err)
+        res.status(500).json({ message: "something went wrong" })
     }
 }
 
 async function remove(req, res) {
     try {
-        const deleted = await service.deleteProduct(parseInt(req.params.id));
-        if (!deleted) return res.status(404).json({ message: "Product not found" });
-        res.json({ message: "Product deleted" });
+        const id = parseInt(req.params.id)
+        const result = await productService.deleteProduct(id)
+
+        if (!result) {
+            res.status(404).json({ message: "product not found" })
+            return
+        }
+
+        res.json({ message: "product deleted successfully" })
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Internal server error" });
+        console.log(err)
+        res.status(500).json({ message: "something went wrong" })
     }
 }
 
-module.exports = { getAll, getOne, create, update, remove };
+module.exports = { getAll, getOne, create, update, remove }
